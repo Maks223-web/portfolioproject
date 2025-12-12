@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Max Portfolio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Manrope:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 1. ПЕРЕМЕННЫЕ И СБРОС --- */
+        :root {
+            --bg-deep: #1a120b;      /* Очень темный коричневый */
+            --bg-card: rgba(44, 30, 20, 0.6);
+            --text-main: #eaddcf;    /* Кремовый */
+            --text-muted: #8c7b70;
+            --accent-gold: #d4a373;  /* Золотой песок */
+            --accent-glow: #e27d60;  /* Теплый оранжевый */
+            --grain: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.1"/%3E%3C/svg%3E');
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Manrope', sans-serif;
+            height: 100vh;
+            overflow: hidden; /* Запрет скролла */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* --- 2. ФОН И ЭФФЕКТЫ --- */
+        
+        /* Холст для частиц */
+        #canvas-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* Текстура шума */
+        .overlay-noise {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: var(--grain);
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.4;
+            mix-blend-mode: overlay;
+        }
+
+        /* Виньетка */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, #0f0a06 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* --- 3. ГЛАВНЫЙ КОНТЕЙНЕР (СТЕКЛО) --- */
+        .glass-container {
+            position: relative;
+            z-index: 5;
+            width: 80%;
+            max-width: 1100px;
+            height: 60vh; /* Чуть уменьшил высоту, так как контента меньше */
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            overflow: hidden;
+            opacity: 0; 
+            transform: translateY(30px);
+            animation: slideUpFade 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.5s;
+            transition: transform 0.1s; /* Для 3D тилта JS */
+        }
+
+        @keyframes slideUpFade {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Левая часть (Фото/Инфо) */
+        .profile-side {
+            flex: 1.5; /* Больше места для текста */
+            padding: 60px;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Декоративная линия */
+        .profile-side::before {
+            content: '';
+            position: absolute;
+            top: 60px; left: 0;
+            width: 4px; height: 60px;
+            background: var(--accent-glow);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--text-main), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-glow);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            display: block;
+        }
+
+        .description {
+            color: var(--text-muted);
+            line-height: 1.8;
+            max-width: 450px;
+            margin-bottom: 40px;
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tech-pill {
+            padding: 6px 14px;
+            border: 1px solid rgba(212, 163, 115, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            transition: 0.3s;
+        }
+
+        .tech-pill:hover {
+            background: rgba(212, 163, 115, 0.2);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(212, 163, 115, 0.2);
+        }
+
+        /* Правая часть (Только GitHub) */
+        .content-side {
+            flex: 1;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; /* Центрируем кнопку */
+        }
+
+        .nav-link {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            color: var(--text-main);
+            text-decoration: none;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-gold);
+            text-shadow: 0 0 20px rgba(212, 163, 115, 0.4);
+        }
+
+        .nav-meta {
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.9rem;
+            color: var(--accent-muted);
+            margin-top: 10px;
+            opacity: 0.6;
+            text-align: center;
+        }
+
+        /* Адаптив */
+        @media (max-width: 900px) {
+            .glass-container {
+                flex-direction: column;
+                height: auto;
+                width: 90%;
+            }
+            .profile-side { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 40px; }
+            .content-side { padding: 40px; }
+            h1 { font-size: 3rem; }
+            .nav-link { font-size: 2.5rem; }
+            .tech-stack { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Шум и Виньетка -->
+    <div class="overlay-noise"></div>
+    <div class="vignette"></div>
+
+    <!-- Canvas для частиц -->
+    <canvas id="canvas-bg"></canvas>
+
+    <!-- Основной контент (Tilt Effect Container) -->
+    <div class="glass-container" id="tilt-card">
+        
+        <!-- Левая часть: Интро -->
+        <div class="profile-side">
+            <span class="subtitle">Web Portfolio</span>
+            <h1>Max<br>Dev</h1>
+            <p class="description">
+                Веб-разработчик, создающий цифровые миры с вниманием к эстетике и производительности. Я превращаю код в эмоции.
+            </p>
+            
+            <div class="tech-stack">
+                <span class="tech-pill">HTML5</span>
+                <span class="tech-pill">CSS3</span>
+                <span class="tech-pill">JavaScript</span>
+                <span class="tech-pill">WebGL</span>
+            </div>
+        </div>
+
+        <!-- Правая часть: Только GitHub -->
+        <div class="content-side">
+            <a href="https://github.com/Maks223-web" target="_blank" class="nav-link">GitHub</a>
+            <span class="nav-meta">Check out my code</span>
+        </div>
+    </div>
+
+    <script>
+        /* --- 1. 3D TILT EFFECT (НАКЛОН КАРТОЧКИ) --- */
+        const card = document.getElementById('tilt-card');
+        
+        document.addEventListener('mousemove', (e) => {
+            if(window.innerWidth < 900) return; // Отключаем на мобильных
+
+            const x = (window.innerWidth / 2 - e.clientX) / 35; // Уменьшил чувствительность
+            const y = (window.innerHeight / 2 - e.clientY) / 35;
+
+            card.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+        });
+
+        /* --- 2. CANVAS ЧАСТИЦЫ (СВЕТЛЯЧКИ) --- */
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 0.5; // Размер точек
+                this.speedX = Math.random() * 0.6 - 0.3; // Еще медленнее
+                this.speedY = Math.random() * 0.6 - 0.3;
+                this.color = `rgba(212, 163, 115, ${Math.random() * 0.5 + 0.1})`; // Золотой полупрозрачный
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x > width) this.x = 0;
+                if (this.x < 0) this.x = width;
+                if (this.y > height) this.y = 0;
+                if (this.y < 0) this.y = height;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            for (let i = 0; i < 60; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            connectParticles();
+            requestAnimationFrame(animateParticles);
+        }
+
+        function connectParticles() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let dx = particles[a].x - particles[b].x;
+                    let dy = particles[a].y - particles[b].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 110) {
+                        ctx.strokeStyle = `rgba(212, 163, 115, ${0.1 - distance/1100})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        initParticles();
+        animateParticles();
+    </script>
+</body>
+</html>
