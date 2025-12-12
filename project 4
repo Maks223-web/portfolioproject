@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valuev M</title>
+    <!-- Подключаем иконки FontAwesome для соцсетей -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Шрифт в стиле "код" -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        /* Сброс стандартных отступов */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* Градиент от светло-серого к кирпично-терракотовому */
+            background: linear-gradient(135deg, #e0e0e0 0%, #b94b38 100%);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Чтобы не было прокрутки */
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Настройки Canvas для эффекта матрицы */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Фон под контентом */
+            opacity: 0.8; /* Небольшая прозрачность, чтобы градиент лучше читался */
+        }
+
+        /* Контейнер для центрального контента */
+        .content {
+            z-index: 10; /* Поверх анимации */
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1); /* Эффект стекла */
+            backdrop-filter: blur(5px);
+            padding: 3rem 5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        /* Имя */
+        h1 {
+            font-size: 4rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.5);
+        }
+
+        p.subtitle {
+            font-size: 1.2rem;
+            color: #4a4a4a;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+
+        /* Ссылки */
+        .links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn {
+            text-decoration: none;
+            color: #fff;
+            background-color: #556b2f; /* Серо-зеленый под стиль матрицы */
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            background-color: #3e5223;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn i {
+            font-size: 1.5rem;
+        }
+
+        /* Анимация появления */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Адаптив для мобильных */
+        @media (max-width: 600px) {
+            h1 { font-size: 2.5rem; }
+            .content { padding: 2rem; width: 90%; }
+            .links { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Холст для анимации матрицы -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Основной контент -->
+    <div class="content">
+        <h1>МАКСИМ</h1>
+        <p class="subtitle">Programmer / Developer</p>
+        
+        <div class="links">
+            <!-- Вставьте свои ссылки ниже в атрибут href -->
+            <a href="https://t.me/ВАШ_НИК" class="btn" target="_blank">
+                <i class="fab fa-telegram-plane"></i> Telegram
+            </a>
+            <a href="https://github.com/ВАШ_НИК" class="btn" target="_blank">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Устанавливаем размер канваса на весь экран
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Символы для матрицы (Катакана + Латиница + Цифры)
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789アァカサタナハマヤャラワガザダバパイィキシチニヒミリグズヅブプエェケセテネヘメレゲゼデベペオォコソトノホモロョゴゾドボポヴッン';
+        const charArray = chars.split('');
+
+        const fontSize = 16;
+        let columns = canvas.width / fontSize;
+
+        // Массив для отслеживания Y-координаты каждого столбца
+        let drops = [];
+        
+        // Инициализация капель
+        function initDrops() {
+            columns = canvas.width / fontSize;
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100; // Начинаем с разной высоты за пределами экрана
+            }
+        }
+        initDrops();
+        
+        // Пересчет колонок при ресайзе
+        window.addEventListener('resize', initDrops);
+
+        function draw() {
+            // "Затираем" экран полупрозрачным слоем, чтобы создать эффект следа.
+            // Используем светлый цвет (белый с прозрачностью), так как фон у нас светлый градиент.
+            // Если использовать черный, градиент "испачкается".
+            ctx.fillStyle = 'rgba(230, 230, 230, 0.15)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Настройки текста
+            // Серо-зеленый цвет (#4e6e5d) как просили
+            ctx.fillStyle = '#4e6e5d'; 
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                // Выбираем случайный символ
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                
+                // Рисуем символ
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Сброс капли наверх случайным образом после того, как она ушла вниз
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                // Двигаем каплю вниз
+                drops[i]++;
+            }
+        }
+
+        // Запуск анимации (30 кадров в секунду для эффекта кино)
+        setInterval(draw, 33);
+
+    </script>
+</body>
+</html>
+
